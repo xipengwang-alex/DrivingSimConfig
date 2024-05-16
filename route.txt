@@ -1,5 +1,0 @@
-76, 31, True, False, True, False, False, 31
-31, 36, False, False, False, False, False, 36
-36, 40, False, False, False, False, False, 40
-40, 41, False, False, False, False, False, 41
-41, None, False, False, False, False, False, None

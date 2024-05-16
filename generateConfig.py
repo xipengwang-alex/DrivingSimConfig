@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import tkinter as tk
 from PIL import Image, ImageTk
+import json
 
 # Constants
 IMAGE_OFFSET_X = 900
@@ -10,7 +11,7 @@ SCALE = 0.0253
 WAYPOINT_SIZE = 10
 MAP_IMAGE_PATH = 'test_map.png'
 WAYPOINT_FILE = 'WayPointLog.csv'
-ROUTE_FILE = 'route.txt'
+ROUTE_FILE = 'route.json'
 FONT = ('Arial', 12)
 
 class Waypoint:
@@ -224,12 +225,31 @@ class MapVisualizer:
     def save_route(self, filename):
         route_details = []
         for start, end in self.route:
-            route_details.append(f"{start.index}, {start.next_waypoint}, {start.is_self_report}, {start.transparency}, {start.task_complexity}, {start.reliability}, {start.control_mode}, {end.index}\n")
-        route_details.append(f"{end.index}, {end.next_waypoint}, {end.is_self_report}, {end.transparency}, {end.task_complexity}, {end.reliability}, {end.control_mode}, None\n")
+            route_details.append({
+                "index": start.index,
+                "name": start.name,
+                "next_waypoint": start.next_waypoint,
+                "is_self_report": start.is_self_report,
+                "transparency": start.transparency,
+                "task_complexity": start.task_complexity,
+                "reliability": start.reliability,
+                "control_mode": start.control_mode
+            })
+        if end:
+            route_details.append({
+                "index": end.index,
+                "name": end.name,
+                "next_waypoint": None,
+                "is_self_report": end.is_self_report,
+                "transparency": end.transparency,
+                "task_complexity": end.task_complexity,
+                "reliability": end.reliability,
+                "control_mode": end.control_mode
+            })
+        route_json = {"waypoints": route_details}
 
         with open(filename, 'w') as file:
-            for details in route_details:
-                file.write(details)
+            json.dump(route_json, file, indent=4)
         self.route_saved = True
 
     def update_waypoint_info(self):
@@ -287,4 +307,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

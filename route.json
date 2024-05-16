@@ -1,0 +1,94 @@
+{
+    "waypoints": [
+        {
+            "index": 76,
+            "name": "Way_Point_Auto_C_77",
+            "next_waypoint": 39,
+            "is_self_report": false,
+            "transparency": false,
+            "task_complexity": false,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 39,
+            "name": "Way_Point_Auto_C_40",
+            "next_waypoint": 64,
+            "is_self_report": true,
+            "transparency": false,
+            "task_complexity": false,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 64,
+            "name": "Way_Point_Auto_C_65",
+            "next_waypoint": 30,
+            "is_self_report": false,
+            "transparency": false,
+            "task_complexity": false,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 30,
+            "name": "Way_Point_Auto_C_31",
+            "next_waypoint": 29,
+            "is_self_report": false,
+            "transparency": false,
+            "task_complexity": false,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 29,
+            "name": "Way_Point_Auto_C_30",
+            "next_waypoint": 28,
+            "is_self_report": false,
+            "transparency": false,
+            "task_complexity": true,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 28,
+            "name": "Way_Point_Auto_C_29",
+            "next_waypoint": 41,
+            "is_self_report": false,
+            "transparency": false,
+            "task_complexity": false,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 41,
+            "name": "Way_Point_Auto_C_42",
+            "next_waypoint": 16,
+            "is_self_report": false,
+            "transparency": true,
+            "task_complexity": true,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 16,
+            "name": "Way_Point_Auto_C_17",
+            "next_waypoint": 17,
+            "is_self_report": false,
+            "transparency": true,
+            "task_complexity": true,
+            "reliability": false,
+            "control_mode": false
+        },
+        {
+            "index": 17,
+            "name": "Way_Point_Auto_C_18",
+            "next_waypoint": null,
+            "is_self_report": false,
+            "transparency": false,
+            "task_complexity": true,
+            "reliability": true,
+            "control_mode": false
+        }
+    ]
+}
