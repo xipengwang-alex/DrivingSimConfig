@@ -11,6 +11,7 @@ WAYPOINT_SIZE = 10
 MAP_IMAGE_PATH = 'test_map.png'
 WAYPOINT_FILE = 'WayPointLog.csv'
 ROUTE_FILE = 'route.txt'
+FONT = ('Arial', 12)
 
 class Waypoint:
     def __init__(self, index, name, x, y, next_waypoint=None, is_self_report=False, transparency=False,
@@ -37,7 +38,6 @@ class WaypointHandler:
                 data = line.strip().split(', ')
                 if len(data) >= 4:
                     index, name, x, y = data[:4]
-                    # Placeholder for additional attributes, assume defaults
                     waypoints.append(Waypoint(int(index), name, float(x), float(y)))
         return waypoints
     
@@ -60,27 +60,32 @@ class MapVisualizer:
         self.canvas.pack(side=tk.LEFT)
 
         self.options_frame = tk.Frame(self.master)
-        self.options_frame.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.options_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-        self.waypoint_info_label = tk.Label(self.options_frame, text="Waypoint Info")
-        self.waypoint_info_label.pack()
-
-        self.waypoint_labels = {}
-        labels = ["Index", "Name", "X", "Y", "Next Waypoint"]
-        for label in labels:
-            self.waypoint_labels[label] = tk.Label(self.options_frame, text=f"{label}: ")
-            self.waypoint_labels[label].pack()
-
-        button_labels = ["Self-Report", "Transparency", "Task Complexity", "Reliability", "Control Mode"]
-        for label in button_labels:
-            self.waypoint_labels[label] = tk.Button(self.options_frame, text=f"{label}: ")
-            self.waypoint_labels[label].pack()
-
+        self.create_option_widgets()
         self.update_waypoint_info()
 
         self.canvas.bind("<Button-1>", self.on_left_click)
         self.canvas.bind("<Button-3>", self.on_right_click)
         self.canvas.bind("<Motion>", self.on_mouse_move)
+
+    def create_option_widgets(self):
+        self.waypoint_info_label = tk.Label(self.options_frame, text="Waypoint Info", font=FONT)
+        self.waypoint_info_label.pack()
+
+        self.waypoint_labels = {}
+        labels = ["Index", "Name", "X", "Y", "Next Waypoint"]
+        for label in labels:
+            self.waypoint_labels[label] = tk.Label(self.options_frame, text=f"{label}: ", font=FONT)
+            self.waypoint_labels[label].pack(anchor=tk.W)
+
+        button_frame = tk.Frame(self.options_frame)
+        button_frame.pack(fill=tk.BOTH, expand=True)
+        
+        button_labels = ["Self-Report", "Transparency", "Task Complexity", "Reliability", "Control Mode"]
+        for label in button_labels:
+            self.waypoint_labels[label] = tk.Button(button_frame, text=f"{label}: ", font=FONT, relief=tk.GROOVE, padx=5, pady=2)
+            self.waypoint_labels[label].pack(anchor=tk.W, fill=tk.X, pady=2)
 
     def compute_bounds(self):
         min_x = min(waypoint.x for waypoint in self.waypoint_handler.waypoints) + IMAGE_OFFSET_X
@@ -270,4 +275,4 @@ def main():
     root.mainloop()
 
 if __name__ == '__main__':
-    main() 
+    main()
