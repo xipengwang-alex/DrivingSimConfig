@@ -27,6 +27,14 @@ class Waypoint:
         self.reliability = reliability
         self.control_mode = control_mode
 
+    def reset_attributes(self):
+        self.next_waypoint = None
+        self.is_self_report = False
+        self.transparency = False
+        self.task_complexity = False
+        self.reliability = False
+        self.control_mode = False
+
 class WaypointHandler:
     def __init__(self, filename):
         self.waypoints = self.load_waypoints(filename)
@@ -209,6 +217,9 @@ class MapVisualizer:
         self.route_mode = False
         self.last_waypoint = None
         self.route_saved = False
+        for waypoint in self.waypoint_handler.waypoints:
+            waypoint.reset_attributes()
+        self.update_waypoint_info()
 
     def save_route(self, filename):
         route_details = []
@@ -276,3 +287,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
