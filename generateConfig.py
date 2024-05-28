@@ -11,30 +11,38 @@ SCALE = 0.0253
 WAYPOINT_SIZE = 10
 MAP_IMAGE_PATH = 'test_map.png'
 WAYPOINT_FILE = 'WayPointLog.csv'
-ROUTE_FILE = 'route.json'
+ROUTE_FILE = 'InitConfig.json'
 FONT = ('Arial', 12)
 
 class Waypoint:
-    def __init__(self, index, name, x, y, next_waypoint=None, is_self_report=False, transparency=False,
-                 task_complexity=False, reliability=False, control_mode=False):
+    def __init__(self, index, name, x, y, next_waypoint=None, is_self_report=False, set_transparency_on=False,
+                 set_task_complexity_high=False, set_reliability_low=False, set_control_mode_manual=False):
         self.index = index
         self.name = name
         self.x = x
         self.y = y
         self.next_waypoint = next_waypoint
         self.is_self_report = is_self_report
-        self.transparency = transparency
-        self.task_complexity = task_complexity
-        self.reliability = reliability
-        self.control_mode = control_mode
+        self.set_transparency_on = set_transparency_on
+        self.set_task_complexity_high = set_task_complexity_high
+        self.set_reliability_low = set_reliability_low
+        self.set_control_mode_manual = set_control_mode_manual
+        self.if_transparency_changed = False
+        self.if_task_complexity_changed = False
+        self.if_reliability_changed = False
+        self.if_control_mode_changed = False
 
     def reset_attributes(self):
         self.next_waypoint = None
         self.is_self_report = False
-        self.transparency = False
-        self.task_complexity = False
-        self.reliability = False
-        self.control_mode = False
+        self.set_transparency_on = False
+        self.set_task_complexity_high = False
+        self.set_reliability_low = False
+        self.set_control_mode_manual = False
+        self.if_transparency_changed = False
+        self.if_task_complexity_changed = False
+        self.if_reliability_changed = False
+        self.if_control_mode_changed = False
 
 class WaypointHandler:
     def __init__(self, filename):
@@ -230,10 +238,14 @@ class MapVisualizer:
                 "name": start.name,
                 "next_waypoint": start.next_waypoint,
                 "is_self_report": start.is_self_report,
-                "transparency": start.transparency,
-                "task_complexity": start.task_complexity,
-                "reliability": start.reliability,
-                "control_mode": start.control_mode
+                "set_transparency_on": start.set_transparency_on,
+                "set_task_complexity_high": start.set_task_complexity_high,
+                "set_reliability_low": start.set_reliability_low,
+                "set_control_mode_manual": start.set_control_mode_manual,
+                "if_transparency_changed": start.if_transparency_changed,
+                "if_task_complexity_changed": start.if_task_complexity_changed,
+                "if_reliability_changed": start.if_reliability_changed,
+                "if_control_mode_changed": start.if_control_mode_changed
             })
         if end:
             route_details.append({
@@ -241,10 +253,14 @@ class MapVisualizer:
                 "name": end.name,
                 "next_waypoint": None,
                 "is_self_report": end.is_self_report,
-                "transparency": end.transparency,
-                "task_complexity": end.task_complexity,
-                "reliability": end.reliability,
-                "control_mode": end.control_mode
+                "set_transparency_on": end.set_transparency_on,
+                "set_task_complexity_high": end.set_task_complexity_high,
+                "set_reliability_low": end.set_reliability_low,
+                "set_control_mode_manual": end.set_control_mode_manual,
+                "if_transparency_changed": end.if_transparency_changed,
+                "if_task_complexity_changed": end.if_task_complexity_changed,
+                "if_reliability_changed": end.if_reliability_changed,
+                "if_control_mode_changed": end.if_control_mode_changed
             })
         route_json = {"waypoints": route_details}
 
@@ -262,10 +278,10 @@ class MapVisualizer:
 
             attribute_mapping = {
                 "Self-Report": "is_self_report",
-                "Transparency": "transparency",
-                "Task Complexity": "task_complexity",
-                "Reliability": "reliability",
-                "Control Mode": "control_mode"
+                "Transparency": "set_transparency_on",
+                "Task Complexity": "set_task_complexity_high",
+                "Reliability": "set_reliability_low",
+                "Control Mode": "set_control_mode_manual"
             }
 
             for label, attribute in attribute_mapping.items():
@@ -279,6 +295,8 @@ class MapVisualizer:
 
     def toggle_attribute(self, attribute):
         setattr(self.selected_waypoint, attribute, not getattr(self.selected_waypoint, attribute))
+        changed_flag = f"if_{attribute}_changed"
+        setattr(self.selected_waypoint, changed_flag, True)
         self.update_waypoint_info()
         self.route_saved = False
 
@@ -305,5 +323,5 @@ def main():
     update()
     root.mainloop()
 
-if __name__ == '__main__':
+if __name__:
     main()
