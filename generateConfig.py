@@ -99,10 +99,20 @@ class MapVisualizer:
         button_frame = tk.Frame(self.options_frame)
         button_frame.pack(fill=tk.BOTH, expand=True)
         
-        button_labels = ["Self-Report", "Transparency", "Task Complexity", "Reliability", "Control Mode"]
+        self.waypoint_labels["Self-Report"] = tk.Button(button_frame, text="Self-Report: ", font=FONT, relief=tk.GROOVE, padx=5, pady=2)
+        self.waypoint_labels["Self-Report"].pack(anchor=tk.W, fill=tk.X, pady=2)
+
+        button_labels = ["Transparency On", "Task Complexity High", "Reliability Low", "Control Mode Manual"]
         for label in button_labels:
-            self.waypoint_labels[label] = tk.Button(button_frame, text=f"{label}: ", font=FONT, relief=tk.GROOVE, padx=5, pady=2)
-            self.waypoint_labels[label].pack(anchor=tk.W, fill=tk.X, pady=2)
+            button_subframe = tk.Frame(button_frame)
+            button_subframe.pack(anchor=tk.W, fill=tk.X, pady=2)
+
+            self.waypoint_labels[f"{label}_changed"] = tk.Button(button_subframe, text="", font=FONT, relief=tk.GROOVE, padx=5, pady=2, width=2)
+            self.waypoint_labels[f"{label}_changed"].pack(side=tk.LEFT)
+
+            self.waypoint_labels[label] = tk.Button(button_subframe, text=f"{label}: None", font=FONT, relief=tk.GROOVE, padx=5, pady=2)
+            self.waypoint_labels[label].pack(side=tk.LEFT, fill=tk.X, expand=True)
+
 
     def compute_bounds(self):
         min_x = min(waypoint.x for waypoint in self.waypoint_handler.waypoints) + IMAGE_OFFSET_X
@@ -233,35 +243,43 @@ class MapVisualizer:
     def save_route(self, filename):
         route_details = []
         for start, end in self.route:
+            special_functions = {}
+            if start.if_transparency_changed:
+                special_functions["set_transparency_on"] = start.set_transparency_on
+            if start.if_task_complexity_changed:
+                special_functions["set_task_complexity_high"] = start.set_task_complexity_high
+            if start.if_reliability_changed:
+                special_functions["set_reliability_low"] = start.set_reliability_low
+            if start.if_control_mode_changed:
+                special_functions["set_control_mode_manual"] = start.set_control_mode_manual
+
             route_details.append({
                 "index": start.index,
                 "name": start.name,
                 "next_waypoint": start.next_waypoint,
                 "is_self_report": start.is_self_report,
-                "set_transparency_on": start.set_transparency_on,
-                "set_task_complexity_high": start.set_task_complexity_high,
-                "set_reliability_low": start.set_reliability_low,
-                "set_control_mode_manual": start.set_control_mode_manual,
-                "if_transparency_changed": start.if_transparency_changed,
-                "if_task_complexity_changed": start.if_task_complexity_changed,
-                "if_reliability_changed": start.if_reliability_changed,
-                "if_control_mode_changed": start.if_control_mode_changed
+                "special_functions": special_functions
             })
+
         if end:
+            special_functions = {}
+            if end.if_transparency_changed:
+                special_functions["set_transparency_on"] = end.set_transparency_on
+            if end.if_task_complexity_changed:
+                special_functions["set_task_complexity_high"] = end.set_task_complexity_high
+            if end.if_reliability_changed:
+                special_functions["set_reliability_low"] = end.set_reliability_low
+            if end.if_control_mode_changed:
+                special_functions["set_control_mode_manual"] = end.set_control_mode_manual
+
             route_details.append({
                 "index": end.index,
                 "name": end.name,
                 "next_waypoint": None,
                 "is_self_report": end.is_self_report,
-                "set_transparency_on": end.set_transparency_on,
-                "set_task_complexity_high": end.set_task_complexity_high,
-                "set_reliability_low": end.set_reliability_low,
-                "set_control_mode_manual": end.set_control_mode_manual,
-                "if_transparency_changed": end.if_transparency_changed,
-                "if_task_complexity_changed": end.if_task_complexity_changed,
-                "if_reliability_changed": end.if_reliability_changed,
-                "if_control_mode_changed": end.if_control_mode_changed
+                "special_functions": special_functions
             })
+
         route_json = {"waypoints": route_details}
 
         with open(filename, 'w') as file:
@@ -276,27 +294,39 @@ class MapVisualizer:
             self.waypoint_labels["Y"].config(text=f"Y: {self.selected_waypoint.y}")
             self.waypoint_labels["Next Waypoint"].config(text=f"Next Waypoint: {self.selected_waypoint.next_waypoint}")
 
+            self.waypoint_labels["Self-Report"].config(text=f"Self-Report: {self.selected_waypoint.is_self_report}", command=lambda: self.toggle_attribute(None, "is_self_report"), fg="forest green" if self.selected_waypoint.is_self_report else "brown3")
+
             attribute_mapping = {
-                "Self-Report": "is_self_report",
-                "Transparency": "set_transparency_on",
-                "Task Complexity": "set_task_complexity_high",
-                "Reliability": "set_reliability_low",
-                "Control Mode": "set_control_mode_manual"
+                "Transparency On": ("if_transparency_changed", "set_transparency_on"),
+                "Task Complexity High": ("if_task_complexity_changed", "set_task_complexity_high"),
+                "Reliability Low": ("if_reliability_changed", "set_reliability_low"),
+                "Control Mode Manual": ("if_control_mode_changed", "set_control_mode_manual")
             }
 
-            for label, attribute in attribute_mapping.items():
+            for label, (changed_flag, attribute) in attribute_mapping.items():
+                changed_value = getattr(self.selected_waypoint, changed_flag)
+                changed_text = "✓" if changed_value else ""
+                self.waypoint_labels[f"{label}_changed"].config(text=changed_text, command=lambda cf=changed_flag, attr=attribute: self.toggle_changed_flag(cf, attr))
+
                 attribute_value = getattr(self.selected_waypoint, attribute)
-                button_text = f"{label}: {attribute_value}"
-                button_color = "green" if attribute_value else "black"
-                self.waypoint_labels[label].config(text=button_text, command=lambda attr=attribute: self.toggle_attribute(attr), fg=button_color)
+                button_text = f"{label}: {str(attribute_value)}" if changed_value else f"{label}: None"
+                button_color = "forest green" if attribute_value else "brown3"
+                if not changed_value:
+                    button_color = "black"
+                self.waypoint_labels[label].config(text=button_text, command=lambda cf=changed_flag, attr=attribute: self.toggle_attribute(cf, attr), fg=button_color)
         else:
             for label in self.waypoint_labels.values():
                 label.config(text="", command=None)
 
-    def toggle_attribute(self, attribute):
+    def toggle_changed_flag(self, changed_flag, attribute):
+        setattr(self.selected_waypoint, changed_flag, not getattr(self.selected_waypoint, changed_flag))
+        self.update_waypoint_info()
+        self.route_saved = False
+
+    def toggle_attribute(self, changed_flag, attribute):
         setattr(self.selected_waypoint, attribute, not getattr(self.selected_waypoint, attribute))
-        changed_flag = f"if_{attribute}_changed"
-        setattr(self.selected_waypoint, changed_flag, True)
+        if changed_flag is not None:
+            setattr(self.selected_waypoint, changed_flag, True)
         self.update_waypoint_info()
         self.route_saved = False
 
