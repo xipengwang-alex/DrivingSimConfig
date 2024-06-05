@@ -5,13 +5,12 @@ from PIL import Image, ImageTk
 import json
 
 # Constants
-IMAGE_OFFSET_X = 900
-IMAGE_OFFSET_Y = -700
-SCALE = 0.0253
-WAYPOINT_SIZE = 10
-MAP_IMAGE_PATH = 'test_map.png'
+IMAGE_COORD_LEFT_BOTTOM = -80300, 50000 #(X=-83481.581331,Y=49212.589821,Z=63.579365)
+IMAGE_COORD_RIGHT_TOP = 70000, -57000 #(X=68105.272395,Y=-57570.548075,Z=63.579365)
+WAYPOINT_SIZE = 7
+MAP_IMAGE_PATH = 'SmallCityLvl_1.png'
 WAYPOINT_FILE = 'WayPointLog.csv'
-ROUTE_FILE = 'InitConfig.json'
+ROUTE_FILE = '../InitConfig.json'
 FONT = ('Arial', 12)
 
 class Waypoint:
@@ -70,9 +69,19 @@ class MapVisualizer:
         self.hovered_waypoint = None
         self.route_saved = False
         self.mouse_pos = None
-        self.min_x, self.max_x, self.min_y, self.max_y = self.compute_bounds()
-        self.offset_x, self.offset_y = self.compute_offsets()
+        
+        map_points = np.array([(0, 0), (self.map_image.shape[1], 0),
+                            (self.map_image.shape[1], self.map_image.shape[0]),
+                            (0, self.map_image.shape[0])], dtype=np.float32)
+                
+        coordinate_points = np.array([(IMAGE_COORD_LEFT_BOTTOM[0], IMAGE_COORD_RIGHT_TOP[1]), (IMAGE_COORD_RIGHT_TOP[0], IMAGE_COORD_RIGHT_TOP[1]), 
+                                      (IMAGE_COORD_RIGHT_TOP[0], IMAGE_COORD_LEFT_BOTTOM[1]), (IMAGE_COORD_LEFT_BOTTOM[0], IMAGE_COORD_LEFT_BOTTOM[1])], dtype=np.float32)
 
+        map_points = map_points.reshape(4, 1, 2)
+        coordinate_points = coordinate_points.reshape(4, 1, 2)
+        
+        self.transformation_matrix = cv2.getPerspectiveTransform(coordinate_points, map_points)
+        
         self.canvas = tk.Canvas(self.master, width=self.map_image.shape[1], height=self.map_image.shape[0])
         self.canvas.pack(side=tk.LEFT)
 
@@ -86,6 +95,29 @@ class MapVisualizer:
         self.canvas.bind("<Button-3>", self.on_right_click)
         self.canvas.bind("<Motion>", self.on_mouse_move)
 
+    def transform_coordinates(self, x, y):
+        point = np.array([[x, y]], dtype=np.float32)
+        point = np.reshape(point, (1, 1, 2))  # Reshape to (1, 1, 2)
+        transformed_point = cv2.perspectiveTransform(point, self.transformation_matrix)
+        return int(transformed_point[0][0][0]), int(transformed_point[0][0][1])
+
+    def draw_waypoints(self, image):
+        for waypoint in self.waypoint_handler.waypoints:
+            scaled_x, scaled_y = self.transform_coordinates(waypoint.x, waypoint.y)
+            color = (0, 0, 255) if waypoint == self.last_waypoint else (0, 255, 0)
+            cv2.rectangle(image, (scaled_x - WAYPOINT_SIZE, scaled_y - WAYPOINT_SIZE),
+                        (scaled_x + WAYPOINT_SIZE, scaled_y + WAYPOINT_SIZE), color, -1)
+
+            if waypoint == self.selected_waypoint:
+                cv2.rectangle(image, (scaled_x - WAYPOINT_SIZE - 2, scaled_y - WAYPOINT_SIZE - 2),
+                            (scaled_x + WAYPOINT_SIZE + 2, scaled_y + WAYPOINT_SIZE + 2), (255, 0, 0), 2)
+
+    def draw_routes(self, image):
+        for start, end in self.route:
+            start_x, start_y = self.transform_coordinates(start.x, start.y)
+            end_x, end_y = self.transform_coordinates(end.x, end.y)
+            cv2.arrowedLine(image, (start_x, start_y), (end_x, end_y), (255, 0, 0), 2)
+            
     def create_option_widgets(self):
         self.waypoint_info_label = tk.Label(self.options_frame, text="Waypoint Info", font=FONT)
         self.waypoint_info_label.pack()
@@ -113,19 +145,6 @@ class MapVisualizer:
             self.waypoint_labels[label] = tk.Button(button_subframe, text=f"{label}: None", font=FONT, relief=tk.GROOVE, padx=5, pady=2)
             self.waypoint_labels[label].pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-
-    def compute_bounds(self):
-        min_x = min(waypoint.x for waypoint in self.waypoint_handler.waypoints) + IMAGE_OFFSET_X
-        max_x = max(waypoint.x for waypoint in self.waypoint_handler.waypoints)
-        min_y = min(waypoint.y for waypoint in self.waypoint_handler.waypoints) + IMAGE_OFFSET_Y
-        max_y = max(waypoint.y for waypoint in self.waypoint_handler.waypoints)
-        return min_x, max_x, min_y, max_y
-
-    def compute_offsets(self):
-        offset_x = (self.map_image.shape[1] - (self.max_x - self.min_x) * SCALE) / 2
-        offset_y = (self.map_image.shape[0] - (self.max_y - self.min_y) * SCALE) / 2
-        return offset_x, offset_y
-
     def draw(self):
         display_image = self.map_image.copy()
         self.draw_waypoints(display_image)
@@ -141,33 +160,12 @@ class MapVisualizer:
         self.canvas.create_image(0, 0, anchor=tk.NW, image=photo)
         self.canvas.image = photo
 
-    def draw_waypoints(self, image):
-        for waypoint in self.waypoint_handler.waypoints:
-            scaled_x = int((waypoint.x - self.min_x) * SCALE + self.offset_x)
-            scaled_y = int((waypoint.y - self.min_y) * SCALE + self.offset_y)
-            color = (0, 0, 255) if waypoint == self.last_waypoint else (0, 255, 0)
-            cv2.rectangle(image, (scaled_x - WAYPOINT_SIZE, scaled_y - WAYPOINT_SIZE),
-                        (scaled_x + WAYPOINT_SIZE, scaled_y + WAYPOINT_SIZE), color, -1)
-
-            if waypoint == self.selected_waypoint:
-                cv2.rectangle(image, (scaled_x - WAYPOINT_SIZE - 2, scaled_y - WAYPOINT_SIZE - 2),
-                            (scaled_x + WAYPOINT_SIZE + 2, scaled_y + WAYPOINT_SIZE + 2), (255, 0, 0), 2)
-
-    def draw_routes(self, image):
-        for start, end in self.route:
-            start_x = int((start.x - self.min_x) * SCALE + self.offset_x)
-            start_y = int((start.y - self.min_y) * SCALE + self.offset_y)
-            end_x = int((end.x - self.min_x) * SCALE + self.offset_x)
-            end_y = int((end.y - self.min_y) * SCALE + self.offset_y)
-            cv2.arrowedLine(image, (start_x, start_y), (end_x, end_y), (255, 0, 0), 2)
-
     def draw_hover_info(self, image):
         if self.hovered_waypoint is not None:
-            text_pos = list(self.mouse_pos)
-            text_pos[0] += 20
-            text_pos[1] += 10
-            cv2.putText(image, f"{self.hovered_waypoint.index}: {self.hovered_waypoint.name}", tuple(text_pos),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+            scaled_x, scaled_y = self.transform_coordinates(self.hovered_waypoint.x, self.hovered_waypoint.y)
+            text_pos = (scaled_x + 20, scaled_y + 10)
+            cv2.putText(image, f"{self.hovered_waypoint.index}: {self.hovered_waypoint.name}", text_pos,
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
     def draw_route_list(self, image):
         route_color = (0, 0, 255) if not self.route_saved else (0, 255, 0)
@@ -189,8 +187,7 @@ class MapVisualizer:
     def process_click(self, x, y, left=True):
         clicked_waypoint = None
         for waypoint in self.waypoint_handler.waypoints:
-            scaled_x = int((waypoint.x - self.min_x) * SCALE + self.offset_x)
-            scaled_y = int((waypoint.y - self.min_y) * SCALE + self.offset_y)
+            scaled_x, scaled_y = self.transform_coordinates(waypoint.x, waypoint.y)
             if abs(x - scaled_x) < WAYPOINT_SIZE and abs(y - scaled_y) < WAYPOINT_SIZE:
                 clicked_waypoint = waypoint
                 break
@@ -225,8 +222,7 @@ class MapVisualizer:
     def update_hover(self, x, y):
         self.hovered_waypoint = None
         for waypoint in self.waypoint_handler.waypoints:
-            scaled_x = int((waypoint.x - self.min_x) * SCALE + self.offset_x)
-            scaled_y = int((waypoint.y - self.min_y) * SCALE + self.offset_y)
+            scaled_x, scaled_y = self.transform_coordinates(waypoint.x, waypoint.y)
             if abs(x - scaled_x) < WAYPOINT_SIZE and abs(y - scaled_y) < WAYPOINT_SIZE:
                 self.hovered_waypoint = waypoint
                 break
